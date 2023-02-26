@@ -1,0 +1,45 @@
+
+First, install Mininet from source
+http://mininet.org/download/
+# Make sure you use the install.sh -nfv option
+
+
+https://www.tecmint.com/create-network-bridge-in-ubuntu/
+https://askubuntu.com/questions/1037704/how-to-create-a-bridge-from-a-wifi-laptop
+# JUST USE nm-connection-editor
+https://techandtrains.com/2013/11/24/mininet-host-talking-to-internet/
+
+
+https://www.researchgate.net/publication/305782558_Mininet-WiFi_A_Platform_for_Hybrid_Physical-Virtual_Software-Defined_Wireless_Networking_Research?enrichId=rgreq-777369ce3497c8be114c9535c853bf91-XXX&enrichSource=Y292ZXJQYWdlOzMwNTc4MjU1ODtBUzo0MDk0OTgwODM3MDg5MzRAMTQ3NDY0MzM1OTg3MA%3D%3D&el=1_x_3&_esc=publicationCoverPdf
+# They show some setup where they are connecting Mininet to a physical AP
+https://www.youtube.com/watch?v=WH6bSOKC7Lk
+# Same as above, just a video
+
+
+
+Issues:
+- Remember to allow the bash scripts to be executable.
+
+Notes:
+- My python code is setup so listening/binding is the local host and a particular port, but sending data is using a mininet address and the original particular port.
+
+- When an external host sends data, they must send data first to the mininet server, and then within that data have another message 
+- THe other option is to have each external host map to a particular interface on the Mininet server, which actually corresponded to some switch.  The switches are 
+then connected together like originally...and external hosts use the IP for each interface - thus we just task each external host to a particular interface designating their grouping/tier.  The issue with this approach is that you can't do mobility experiments, since Mininet only has switches.
+
+
+
+Thoughts:
+- We could have PIs just talk to each other via the Mininet device, where
+    each one is connected via Ethernet.  However, when PIs want to talk to each other, they actually talk via the virtual addresses...
+    So PI with address 172.17.60.4 actually has vaddress 10.0.0.2
+    So another PI would talk to this one via the 10.0.0.2 address.
+    Mininet would have to do two things:
+        - Identify the source virtual address
+
+
+- In our CE work we had each host have its own python receiver and transmitter
+    Similarly in Heliot there were virtual containers which established connections with a real device.
+    See https://github.com/nesl/Heliot/blob/master/main/Scenario_hardcoded/network.py
+
+    
