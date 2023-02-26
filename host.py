@@ -30,7 +30,7 @@ def parse_mininet_address(data):
     remaining_data = ''.join(decoded_str[2:])
 
     mininet_addr = (mininet_ip, mininet_port)
-    return mininet_addr, remaining_data
+    return mininet_addr, remaining_data.encode()
 
 
 #  Forward data from current virtual address to real address

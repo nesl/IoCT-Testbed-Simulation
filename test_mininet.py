@@ -16,7 +16,7 @@ def emptyNet():
 
     "Create an empty network and add nodes to it."
 
-    net = Mininet( controller=DefaultController, link=TCLink )
+    net = Mininet( controller=DefaultController, link=TCLink, switch=OVSKernelSwitch )
 
     info( '*** Adding controller\n' )
     net.addController( 'c0' )
@@ -35,6 +35,17 @@ def emptyNet():
     h1 = net.addHost( 'h1', ip=host_address )
     h2 = net.addHost( 'h2', ip=rpi1_address )
     h3 = net.addHost( 'h3', ip=rpi2_address )
+
+
+    # IMPORTANT NOTE TO SELF
+    #  - If you do 's1 ifconfig', you'll notice that it is connected
+    #      to all network interfaces, and you are able to ping out to any
+    #      machine.
+    #  - My guess is that we need to have some routing rules so that 
+    #      mininet hosts can ping LAN hosts, and LAN hosts can ping mininet hosts.
+    #    So yes, somewhere we need to establish routing rules.
+    #   BASICALLY - ALL HOSTS MUST ACTUALLY BE SWITCHES
+
 
     info( '*** Adding switch\n' )
     s1 = net.addSwitch( 's1' )
@@ -58,13 +69,13 @@ def emptyNet():
 
 
     # Load up our host processes.
-    h1_pid = h1.cmd("xterm -hold -e './host.sh " + str(host_address) + \
+    h1_pid = s1.cmd("xterm -hold -e './host.sh " + str(host_address) + \
             " " + str(host_port) + "' &")
 
     time.sleep(2)
 
-    h2_pid = h2.cmd("xterm -hold -e './host.sh " + str(rpi1_address) + \
-            " " + str(rpi1_port) + "' &")
+    # h2_pid = h2.cmd("xterm -hold -e './host.sh " + str(rpi1_address) + \
+    #         " " + str(rpi1_port) + "' &")
 
     #ZMQ brokers
     # 
