@@ -10,13 +10,15 @@ import os
 import signal
 from signal import SIGKILL
 import subprocess
-    
+import json
+
+
 
 def emptyNet():
 
     "Create an empty network and add nodes to it."
 
-    net = Mininet( controller=DefaultController, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=DefaultController, link=TCLink)#, switch=OVSKernelSwitch )
 
     info( '*** Adding controller\n' )
     net.addController( 'c0' )
@@ -25,41 +27,71 @@ def emptyNet():
 
     # Add all hosts
 
-    host_address = '10.0.0.1'
-    rpi1_address = '10.0.0.2'
-    rpi2_address = '10.0.0.3'
+    # First, read in our config file
+    f = open("config.json")
+    config_data = json.load(f)
+    f.close()
 
-    host_port = 55000 # This is a real port on localhost
-    rpi1_port = 55001
+    # Get all the data...
+    host_internal_address = config_data["host"]["internal_ip"]
+    rpi1_internal_address = config_data["rpi1"]["internal_ip"]
+    rpi1_external_address = config_data["rpi1"]["external_ip"]
 
-    h1 = net.addHost( 'h1', ip=host_address )
-    h2 = net.addHost( 'h2', ip=rpi1_address )
-    h3 = net.addHost( 'h3', ip=rpi2_address )
+    rpi2_internal_address = config_data["rpi2"]["internal_ip"]
+    rpi2_external_address = config_data["rpi2"]["external_ip"]
 
-
-    # IMPORTANT NOTE TO SELF
-    #  - If you do 's1 ifconfig', you'll notice that it is connected
-    #      to all network interfaces, and you are able to ping out to any
-    #      machine.
-    #  - My guess is that we need to have some routing rules so that 
-    #      mininet hosts can ping LAN hosts, and LAN hosts can ping mininet hosts.
-    #    So yes, somewhere we need to establish routing rules.
-    #   BASICALLY - ALL HOSTS MUST ACTUALLY BE SWITCHES
+    # This are real ports on localhost
+    default_port = config_data["host"]["internal_port"] 
+    rpi1_port = config_data["rpi1"]["internal_port"]
+    rpi2_port = config_data["rpi2"]["internal_port"]
 
 
-    info( '*** Adding switch\n' )
-    s1 = net.addSwitch( 's1' )
-    # Intf('wlp6s0', node=s1)
+    # Now add our hosts...
+    rpi1 = net.addSwitch('rpi1', ip=rpi1_internal_address)
+    rpi2 = net.addSwitch('rpi2', ip=rpi2_internal_address)
+
+    # h1 = net.addHost( 'h1', ip=rpi1_internal_address )
+    # h2 = net.addHost( 'h2', ip=rpi2_internal_address )
+    # h2 = net.addHost( 'h2', ip=rpi1_internal_address )
+    # h3 = net.addHost( 'h3', ip=rpi2__internal_address )
+
+
+
+    # So here we have several different switches
+    info( '*** Adding switches\n' )
+
+    device_tier_switch = net.addSwitch('dts1')
+    netedge_tier_switch = net.addSwitch('nts1')
+    cloud_tier_switch = net.addSwitch('cts1')
+
+    # Intf( "h1-eth0", node=rpi1 )
+    # Intf( "h2-eth0", node=rpi2 )
 
     info( '*** Creating links\n' )
 
-    # Add network links (DONT FORGET YOU MUST USE TCLINKS, not regular links!)
+    # Add network links (DONT FORGET YOU MUST USE TCLINKS when creating the network, not regular links!)
     # These options are under http://mininet.org/api/classmininet_1_1link_1_1TCIntf.html
     client_links = []
-    net.addLink(h1, s1)
-    # net.addLink(h2, s1, delay='1s')
-    net.addLink(h2, s1)
-    net.addLink(h3, s1)
+
+    # First, connect all of our tiers together
+    net.addLink(device_tier_switch, netedge_tier_switch, delay='15ms')
+    net.addLink(netedge_tier_switch, cloud_tier_switch, delay='50ms')
+
+
+    # Now we can choose different configurations of how our RPIs are connected.
+    
+    # Setup1: device talks to edge
+    net.addLink(rpi1, device_tier_switch, delay='1s')
+    net.addLink(rpi2, netedge_tier_switch, delay='1s')
+    # net.addLink(h1, device_tier_switch, cls=TCLink, delay='1s')
+    # net.addLink(h2, cloud_tier_switch)
+
+    # Setup2: device talks to cloud
+    # net.addLink(rpi1, device_tier_switch)
+    # net.addLink(rpi2, cloud_tier_switch)
+
+
+
 
     net.addNAT().configDefault()
 
@@ -67,21 +99,11 @@ def emptyNet():
     info( '*** Starting network\n')
     net.start()
 
-
     # Load up our host processes.
-    h1_pid = s1.cmd("xterm -hold -e './host.sh " + str(host_address) + \
-            " " + str(host_port) + "' &")
+    h1_pid = rpi1.cmd("xterm -hold -e './host.sh " + "rpi1" + "' &")
 
-    time.sleep(2)
-
-    # h2_pid = h2.cmd("xterm -hold -e './host.sh " + str(rpi1_address) + \
-    #         " " + str(rpi1_port) + "' &")
-
-    #ZMQ brokers
-    # 
-    # h3_pid = h3.cmd("xterm -hold -e './broker.sh " + str(broker_2_port_consumers) + " " + str(broker_2_port_producers) + "' &")
-
-
+    h2_pid = rpi2.cmd("xterm -hold -e './host.sh " + "rpi2" + "' &")
+    
 
     # PIDS that we need to kill
     pids_to_kill = []

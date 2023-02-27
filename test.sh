@@ -1,2 +1,2 @@
 source venv/bin/activate
-python example_send.py --destination_address $1 --destination_port $2
+python external_send.py --intermediate_address $1 --intermediate_port $2 --destination_address $3

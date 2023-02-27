@@ -1,4 +1,6 @@
 mininet/
 mininet_git/
+mininet_old/
+mininet-wifi/
 openflow/
 venv/

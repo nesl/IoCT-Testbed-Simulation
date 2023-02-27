@@ -1,0 +1,21 @@
+{
+    "rpi1":
+    {
+        "external_ip":"172.17.60.5",
+        "external_port": 55000,
+        "internal_ip":"10.0.0.2",
+        "internal_port":55002
+    },
+    "rpi2":
+    {
+        "external_ip":"172.17.60.6",
+        "external_port": 55000,
+        "internal_ip":"10.0.0.3",
+        "internal_port":55003
+    },
+    "host":
+    {
+        "internal_ip":"10.0.0.1",
+        "internal_port":55000
+    }
+}

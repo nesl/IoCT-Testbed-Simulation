@@ -8,34 +8,40 @@ import argparse
 import socket
 import threading
 import time
+import json
 
 parser = argparse.ArgumentParser(description='Server')
-parser.add_argument('--internal_address', type=str, help='Internal mininet address')
-parser.add_argument('--internal_port', type=int, help='Port receving data')
-parser.add_argument('--external_address', type=str)
-parser.add_argument('--external_port', type=int)
-# parser.add_argument('--ip_to_sensors', type=str, help='Address to send data to sensors')
-# parser.add_argument('--port_to_sensors', type=int, help='Port sending data to sensors')
+parser.add_argument('--device_id', type=str, help='')
 args = parser.parse_args()
 
-LISTEN_SOCKET, SEND_SOCKET, SEND_ADDR = None, None, None
+LISTEN_SOCKET, SEND_SOCKET, HOST_DATA = None, None, None
+
 
 
 # I'm going to assume the data will have a 'header' field like
-#   data = "10.0.0.1:55000:some_bytes"
-def parse_mininet_address(data):
+#   data = "host_id:some_bytes"
+def parse_mininet_address(data, config_data):
     decoded_str = data.decode().split(":")
-    mininet_ip = decoded_str[0]
-    mininet_port = int(decoded_str[1])
-    remaining_data = ''.join(decoded_str[2:])
+    destination_id = decoded_str[0]
 
-    mininet_addr = (mininet_ip, mininet_port)
-    return mininet_addr, remaining_data.encode()
+    # Get the port of the virtual host id
+    mininet_port = config_data[destination_id]["internal_port"]
+    mininet_ip = config_data[destination_id]["internal_ip"]
 
+    mininet_addr = ('', mininet_port)
+    return mininet_addr, data
 
-#  Forward data from current virtual address to real address
-def forward_to_addr(data, addr):
-    SEND_SOCKET.sendto(data, addr)
+#  Forward data to a destination.
+#    If the current mininet virtual host matches the destination, send over LAN
+#    Otherwise, pass it as it is, to the mininet address.
+def forward_to_addr(data, addr, config_data):
+
+    send_addr = addr
+    if HOST_DATA["internal_port"] == addr[1]:
+        send_addr = (HOST_DATA["external_ip"], HOST_DATA["external_port"])
+
+    SEND_SOCKET.sendto(data, send_addr)
+    print("Sending message to " + str(send_addr))
 
 
 # First, set up a listening thread for receiving data
@@ -49,37 +55,40 @@ def listen_thread():
 
     print("Set up listener...")
 
+    # First, read in our config file
+    f = open("config.json")
+    config_data = json.load(f)
+    f.close()
+
     while True:
         data, address = LISTEN_SOCKET.recvfrom(512)
         #  Example address: ('10.0.0.2', 48619)
         # If we receive something
         if len(data):
-            
-            # If this is from the virtual network
-            if address[0][:2] == "10":
-                # forward_to_addr(data, SEND_ADDR)
-                print("From virtual network")
-
-            # If this is from the real network
-            else:
-                mininet_addr, data_to_send = parse_mininet_address(data)
-                forward_to_addr(data_to_send, mininet_addr)
-                print("From Real network")
+            mininet_addr, data_to_send = parse_mininet_address(data, config_data)
+            forward_to_addr(data_to_send, mininet_addr, config_data)
+                
 
 
 # Set up another thread for sending data
 
 if __name__ == "__main__":
 
-    print(args.internal_address)
+    # Get the current device information
+    device_id = args.device_id
+    f = open("config.json")
+    config_data = json.load(f)
+    f.close()
+    HOST_DATA = config_data[device_id]
     
     # Set up the socket
     LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    LISTEN_SOCKET.bind(('', args.internal_port))
+    LISTEN_SOCKET.bind(('', HOST_DATA["internal_port"]))
+
+
 
     # Set up the real node socket
     SEND_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    SEND_ADDR = (args.external_address, args.external_port)
 
     server_listen = threading.Thread(target=listen_thread)
     # server_listen.daemon = True
