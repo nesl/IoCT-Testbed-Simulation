@@ -51,9 +51,9 @@ scp external_recv.py pi@172.17.60.6:/home/pi/IoCT-Testbed
 
 Calling the external clients:
 
-python external_recv.py --intermediate_address 172.17.15.11 --intermediate_port 55003 --origin_id rpi2
+python external_recv.py --intermediate_address 172.17.15.11 --intermediate_port 55001 --origin_id rpi2
 
-python external_send.py --intermediate_address 172.17.15.11 --intermediate_port 55002 --destination_id rpi2 --origin_id rpi1
+python external_send.py --intermediate_address 172.17.15.11 --intermediate_port 55001 --destination_id rpi2 --origin_id rpi1
 
 
 
@@ -64,3 +64,13 @@ edge-machine: brianw@172.17.15.11
 
 By default, each host has port 55000 open for communication, with the exception of edge-machine, which has 55000 open in addition to multiple other ports corresponding to each additional device (e.g. RPI1)
 
+
+
+# To make changes in our routing, I modified our firewall
+  under NAT 1:1 I added rules for the host machine and fake RPI addresses.
+
+
+# ISSUES:
+When you run the test_mininet.py, make sure to run this additional command:
+'''ts1 ifconfig ts1-eth1 10.0.0.1'''
+This is what allows internal mininet hosts to talk to the mininet switch

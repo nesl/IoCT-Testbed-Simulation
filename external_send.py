@@ -32,7 +32,7 @@ def listen_thread():
             message = data.decode()
 
             if "reply" in message:
-                print("Time difference: %f seconds" % (time.time() - SEND_TIMESTAMP))
+                print("Time difference: %f seconds" % ((time.time() - SEND_TIMESTAMP)/2))
     
 
 # Form the data to transmit
@@ -46,6 +46,7 @@ if __name__ == '__main__':
     # Create socket
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     message = custom_marshall(args.message, args.destination_id, args.origin_id)
+    # message = "hello mario".encode()
 
     print("Message: " + message.decode())
     # If this is from a physical node, it can be something like
@@ -57,9 +58,9 @@ if __name__ == '__main__':
 
     print("Sent message...")
 
-    # LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # LISTEN_SOCKET.bind(('', 55000))
-    # LISTEN_SOCKET.settimeout(10)
+    LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    LISTEN_SOCKET.bind(('', 55000))
+    LISTEN_SOCKET.settimeout(10)
 
-    # server_listen = threading.Thread(target=listen_thread)
-    # server_listen.start()
+    server_listen = threading.Thread(target=listen_thread)
+    server_listen.start()

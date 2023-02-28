@@ -1,5 +1,5 @@
 from mininet.net import Mininet
-from mininet.node import DefaultController, OVSKernelSwitch
+from mininet.node import DefaultController, OVSKernelSwitch, Node, Switch
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink, OVSLink, Intf
@@ -12,13 +12,25 @@ from signal import SIGKILL
 import subprocess
 import json
 
+class LinuxRouter( Node ):	# from the Mininet library
+    "A Node with IP forwarding enabled."
+
+    def config( self, **params ):
+        super( LinuxRouter, self).config( **params )
+        # Enable forwarding on the router
+        info ('enabling forwarding on ', self)
+        self.cmd( 'sysctl net.ipv4.ip_forward=1' )
+
+    def terminate( self ):
+        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
+        super( LinuxRouter, self ).terminate()
 
 
 def emptyNet():
 
     "Create an empty network and add nodes to it."
 
-    net = Mininet( controller=DefaultController, link=TCLink)#, switch=OVSKernelSwitch )
+    net = Mininet( controller=DefaultController, link=TCLink, switch=OVSKernelSwitch )
 
     info( '*** Adding controller\n' )
     net.addController( 'c0' )
@@ -33,7 +45,7 @@ def emptyNet():
     f.close()
 
     # Get all the data...
-    host_internal_address = config_data["host"]["internal_ip"]
+    switch_internal_address = config_data["switch"]["internal_ip"]
     rpi1_internal_address = config_data["rpi1"]["internal_ip"]
     rpi1_external_address = config_data["rpi1"]["external_ip"]
 
@@ -41,31 +53,46 @@ def emptyNet():
     rpi2_external_address = config_data["rpi2"]["external_ip"]
 
     # This are real ports on localhost
-    default_port = config_data["host"]["internal_port"] 
-    rpi1_port = config_data["rpi1"]["internal_port"]
-    rpi2_port = config_data["rpi2"]["internal_port"]
+    # default_port = config_data["host"]["internal_port"] 
+    # rpi1_port = config_data["rpi1"]["internal_port"]
+    # rpi2_port = config_data["rpi2"]["internal_port"]
 
 
     # Now add our hosts...
-    rpi1 = net.addSwitch('rpi1', ip=rpi1_internal_address)
-    rpi2 = net.addSwitch('rpi2', ip=rpi2_internal_address)
+    rpi1 = net.addHost('rpi1', ip=rpi1_internal_address, cls=LinuxRouter)
+    # rpi1.cmd('arp -s ' + config_data["switch"]["internal_ip"] + ' fe80::f09b:adff:fe76:90ea')
+    
+    # rpi1.cmd("ip route add 10.0.0.5 via 10.0.0.2 dev rpi1-eth1")
+    rpi2 = net.addHost('rpi2', ip=rpi2_internal_address, cls=LinuxRouter)
+    # rpi2.cmd('arp -s ' + config_data["switch"]["internal_ip"] + ' fe80::f09b:adff:fe76:90ea')
+    # rpi2.cmd("ip route add 10.0.0.5 via 10.0.0.3 dev rpi2-eth1")
 
-    # h1 = net.addHost( 'h1', ip=rpi1_internal_address )
+    # h1 = net.addHost( 'h1', ip="10.0.0.5" )
     # h2 = net.addHost( 'h2', ip=rpi2_internal_address )
     # h2 = net.addHost( 'h2', ip=rpi1_internal_address )
     # h3 = net.addHost( 'h3', ip=rpi2__internal_address )
 
+    # ADD ETHERNET INTERFACE TO TS1
 
 
     # So here we have several different switches
     info( '*** Adding switches\n' )
 
+    # Add some rules for our translator switch
+    translator_switch = net.addSwitch('ts1')
+    
+    # translator_switch.setIP(switch_internal_address, intf="s1")
+
+    # Here, rpi1 must be reached via rpi2
+    # translator_switch.cmd("ip route add 10.0.0.2 via 10.0.0.3 dev ts1-eth1")
+    # translator_switch.cmd("ip route add 172.17.15.11 via 10.0.0.2 dev ts1-eth1")
+
     device_tier_switch = net.addSwitch('dts1')
     netedge_tier_switch = net.addSwitch('nts1')
     cloud_tier_switch = net.addSwitch('cts1')
 
-    # Intf( "h1-eth0", node=rpi1 )
-    # Intf( "h2-eth0", node=rpi2 )
+    # Intf( "eno1", node=rpi1 )
+    # Intf( "eno1", node=rpi2 )
 
     info( '*** Creating links\n' )
 
@@ -74,24 +101,29 @@ def emptyNet():
     client_links = []
 
     # First, connect all of our tiers together
-    net.addLink(device_tier_switch, netedge_tier_switch, delay='15ms')
-    net.addLink(netedge_tier_switch, cloud_tier_switch, delay='50ms')
+    net.addLink(translator_switch, device_tier_switch)
+    net.addLink(device_tier_switch, netedge_tier_switch, delay='20ms')
+    net.addLink(netedge_tier_switch, cloud_tier_switch, delay='100ms')
 
 
     # Now we can choose different configurations of how our RPIs are connected.
     
     # Setup1: device talks to edge
-    net.addLink(rpi1, device_tier_switch, delay='1s')
-    net.addLink(rpi2, netedge_tier_switch, delay='1s')
-    # net.addLink(h1, device_tier_switch, cls=TCLink, delay='1s')
-    # net.addLink(h2, cloud_tier_switch)
+    # net.addLink(rpi1, translator_switch, delay='100ms')
+    # net.addLink(rpi2, translator_switch, delay='100ms')
+    # translator_switch.cmd("ip route add 10.0.0.2 via 10.0.0.2 dev ts1-eth1")
+    # translator_switch.cmd("ip route add 10.0.0.3 via 10.0.0.3 dev ts1-eth1")
+    
+    # An RTT should be:
+    #  100 + 20 + 100 + 20
+    net.addLink(rpi1, device_tier_switch)
+    net.addLink(rpi2, cloud_tier_switch)
 
     # Setup2: device talks to cloud
+    # An RTT should be:
+    #  20 + 0 + 20 + 0
     # net.addLink(rpi1, device_tier_switch)
-    # net.addLink(rpi2, cloud_tier_switch)
-
-
-
+    # net.addLink(rpi2, netedge_tier_switch)
 
     net.addNAT().configDefault()
 
@@ -100,8 +132,8 @@ def emptyNet():
     net.start()
 
     # Load up our host processes.
+    h0_pid = translator_switch.cmd("xterm -hold -e './host.sh " + "switch" + "' &")
     h1_pid = rpi1.cmd("xterm -hold -e './host.sh " + "rpi1" + "' &")
-
     h2_pid = rpi2.cmd("xterm -hold -e './host.sh " + "rpi2" + "' &")
     
 
@@ -111,7 +143,12 @@ def emptyNet():
     # pids_to_kill.append(h2_pid.split()[-1])
 
     info( '*** Running CLI\n' )
+    # net.cmd("ts1 ifconfig ts1-eth4 10.0.0.1")
     CLI( net )
+
+
+    # YOU HAVE TO ISSUE THIS COMMAND WHEN MININET IS RUNNING
+    # 
 
     info( '*** Stopping network' )
     net.stop()

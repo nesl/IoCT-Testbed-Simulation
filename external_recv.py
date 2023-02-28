@@ -37,7 +37,7 @@ def listen_thread():
             print(data.decode())
 
             # Get the source of this packet
-            source_id = data.split(":")[1]
+            source_id = data.decode().split(":")[1]
             message = custom_marshall("reply", source_id, ORIGIN_ID)
 
             clientSocket.sendto(message, \
