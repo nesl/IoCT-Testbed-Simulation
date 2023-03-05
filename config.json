@@ -1,20 +1,20 @@
 {
     "rpi1":
     {
-        "external_ip":"172.17.60.5",
+        "external_ip":"10.0.0.5",
         "external_port": 55000,
-        "internal_ip":"10.0.0.5"
+        "internal_ip":"10.0.1.5"
     },
     "rpi2":
     {
-        "external_ip":"172.17.60.6",
+        "external_ip":"10.0.0.6",
         "external_port": 55000,
-        "internal_ip":"10.0.0.6"
+        "internal_ip":"10.0.1.6"
     },
     "switch":
     {
-        "internal_ip":"10.0.0.1",
-        "external_port":55001,
-        "external_ip":"172.17.15.11"
+        "internal_ip":"10.0.1.7",
+        "external_port":55000,
+        "external_ip":"10.0.0.7"
     }
 }

@@ -8,10 +8,10 @@ import time
 
 parser = argparse.ArgumentParser(description='Server')
 # parser.add_argument('--internal_address', type=str, help='Internal mininet address')
-parser.add_argument('--intermediate_address', type=str, help='')
-parser.add_argument('--intermediate_port', type=int, help='')
-parser.add_argument('--destination_id', type=str, help='')
-parser.add_argument('--origin_id', type=str)
+parser.add_argument('--destination_address', type=str, help='')
+# parser.add_argument('--intermediate_port', type=int, help='')
+# parser.add_argument('--destination_id', type=str, help='')
+# parser.add_argument('--origin_id', type=str)
 parser.add_argument('--message', type=str, default="hello from rpi!")
 args = parser.parse_args()
 
@@ -22,7 +22,7 @@ SEND_TIMESTAMP = 0
 
 def listen_thread():
 
-    print("Set up listener...")
+    print("Set up listener...hi")
 
     while True:
         data, address = LISTEN_SOCKET.recvfrom(512)
@@ -30,28 +30,30 @@ def listen_thread():
         # If we receive something
         if len(data):
             message = data.decode()
+            print(message)
 
             if "reply" in message:
                 print("Time difference: %f seconds" % ((time.time() - SEND_TIMESTAMP)/2))
     
 
 # Form the data to transmit
-def custom_marshall(message, destination_id, origin_id):
+def custom_marshall(message):
 
-    message_to_send = ':'.join([destination_id, origin_id, message])
+    message_to_send = message #':'.join([destination_id, origin_id, message])
     return message_to_send.encode()
 
 if __name__ == '__main__':
 
     # Create socket
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    message = custom_marshall(args.message, args.destination_id, args.origin_id)
+    # clientSocket.bind(('', 55001))
+    message = custom_marshall(args.message)
     # message = "hello mario".encode()
 
     print("Message: " + message.decode())
     # If this is from a physical node, it can be something like
     clientSocket.sendto(message, \
-        (args.intermediate_address, args.intermediate_port ))
+        (args.destination_address, 55000))
 
     # Time of sending a message
     SEND_TIMESTAMP = time.time()

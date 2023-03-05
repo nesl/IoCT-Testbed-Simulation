@@ -46,6 +46,7 @@ def emptyNet():
 
     # Get all the data...
     switch_internal_address = config_data["switch"]["internal_ip"]
+
     rpi1_internal_address = config_data["rpi1"]["internal_ip"]
     rpi1_external_address = config_data["rpi1"]["external_ip"]
 
@@ -62,12 +63,13 @@ def emptyNet():
     rpi1 = net.addHost('rpi1', ip=rpi1_internal_address, cls=LinuxRouter)
     # rpi1.cmd('arp -s ' + config_data["switch"]["internal_ip"] + ' fe80::f09b:adff:fe76:90ea')
     
+
     # rpi1.cmd("ip route add 10.0.0.5 via 10.0.0.2 dev rpi1-eth1")
     rpi2 = net.addHost('rpi2', ip=rpi2_internal_address, cls=LinuxRouter)
     # rpi2.cmd('arp -s ' + config_data["switch"]["internal_ip"] + ' fe80::f09b:adff:fe76:90ea')
-    # rpi2.cmd("ip route add 10.0.0.5 via 10.0.0.3 dev rpi2-eth1")
+    
 
-    # h1 = net.addHost( 'h1', ip="10.0.0.5" )
+    h1 = net.addHost( 'h1', ip="10.0.1.8" )
     # h2 = net.addHost( 'h2', ip=rpi2_internal_address )
     # h2 = net.addHost( 'h2', ip=rpi1_internal_address )
     # h3 = net.addHost( 'h3', ip=rpi2__internal_address )
@@ -103,8 +105,8 @@ def emptyNet():
     # First, connect all of our tiers together
     net.addLink(translator_switch, device_tier_switch)
     net.addLink(device_tier_switch, netedge_tier_switch, delay='20ms')
+    # net.addLink(netedge_tier_switch, cloud_tier_switch, delay='100ms')
     net.addLink(netedge_tier_switch, cloud_tier_switch, delay='100ms')
-
 
     # Now we can choose different configurations of how our RPIs are connected.
     
@@ -118,6 +120,7 @@ def emptyNet():
     #  100 + 20 + 100 + 20
     net.addLink(rpi1, device_tier_switch)
     net.addLink(rpi2, cloud_tier_switch)
+    net.addLink(h1, device_tier_switch)
 
     # Setup2: device talks to cloud
     # An RTT should be:
@@ -125,14 +128,19 @@ def emptyNet():
     # net.addLink(rpi1, device_tier_switch)
     # net.addLink(rpi2, netedge_tier_switch)
 
-    net.addNAT().configDefault()
+    net.addNAT(ip="10.0.0.3").configDefault()
 
 
     info( '*** Starting network\n')
     net.start()
 
     # Load up our host processes.
-    h0_pid = translator_switch.cmd("xterm -hold -e './host.sh " + "switch" + "' &")
+    # h0_pid = translator_switch.cmd("sudo xterm -hold &")
+    translator_switch.cmd("ip route add " + rpi2_internal_address + " via " + rpi1_internal_address)
+    rpi1.cmd("ip route add " + rpi1_external_address + " via " + switch_internal_address)
+    rpi2.cmd("ip route add " + rpi2_external_address + " via " + switch_internal_address)
+
+    h0_pid = translator_switch.cmd("sudo xterm -hold -e 'sudo bash translator.sh " + "switch" + "' &")
     h1_pid = rpi1.cmd("xterm -hold -e './host.sh " + "rpi1" + "' &")
     h2_pid = rpi2.cmd("xterm -hold -e './host.sh " + "rpi2" + "' &")
     
@@ -142,13 +150,18 @@ def emptyNet():
     # pids_to_kill.append(h1_pid.split()[-1])
     # pids_to_kill.append(h2_pid.split()[-1])
 
-    info( '*** Running CLI\n' )
-    # net.cmd("ts1 ifconfig ts1-eth4 10.0.0.1")
+    info( '*** Running CLI\n  DO NOT FORGET THE ADDITIONAL COMMAND FOR TS1** \n' )
+    # net.cmd("ts1 ifconfig ts1-eth1 10.0.0.1")
+
+    os.system("sudo sysctl -w net.ipv4.ip_forward=0") # Disable IPv4 forwarding
+    os.system("ifconfig ts1-eth1 " + switch_internal_address)
+
     CLI( net )
 
 
     # YOU HAVE TO ISSUE THIS COMMAND WHEN MININET IS RUNNING
-    # 
+    #  This allows 
+    # ts1 ifconfig ts1-eth1 10.0.0.7
 
     info( '*** Stopping network' )
     net.stop()

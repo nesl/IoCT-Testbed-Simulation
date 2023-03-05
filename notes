@@ -65,12 +65,59 @@ edge-machine: brianw@172.17.15.11
 By default, each host has port 55000 open for communication, with the exception of edge-machine, which has 55000 open in addition to multiple other ports corresponding to each additional device (e.g. RPI1)
 
 
-
-# To make changes in our routing, I modified our firewall
-  under NAT 1:1 I added rules for the host machine and fake RPI addresses.
-
-
 # ISSUES:
 When you run the test_mininet.py, make sure to run this additional command:
 '''ts1 ifconfig ts1-eth1 10.0.0.1'''
 This is what allows internal mininet hosts to talk to the mininet switch
+
+If you lose WiFi on your host machine or other machines, you should double check your ip routes - it's possible that you messed up the default route and it routes through ethernet rather than WiFi for default.
+
+
+# Steps to enable the desired networking
+- Change the IP route of every RPI to route via the IP of the host machine
+-  You must also change the IP route of every RPI such that the default src changes to the new IP.
+e.g. "sudo ip route del default dev INTERFACE_NAME scope link src OLD_IP"
+to "sudo ip route add default dev INTERFACE_NAME scope link src NEW_IP"
+
+
+- On the host machine, you have to enable promiscuous mode on the ethernet connetcted to the RPIs
+You can do this via "ip link set DEV_NAME promisc on"  and similarly for "off"
+- Make sure that the firewall is off - otherwise the python code will get blocked.
+-  Don't forget to disable IP forwarding - otherwise the RPis will still talk to each other. "sudo sysctl -w net.ipv4.ip_forward=0"
+
+The host machine is basically running a packet sniffer on its ethernet interface.
+Install Scapy: https://scapy.readthedocs.io/en/latest/installation.html
+
+- Change the ip route on the host machine (for each RPI address) to be the loopback address.
+
+One of the issues of changing the IP route to be the loopback address is that
+ then packets never go beyond the host address.
+
+
+ # Steps for setup
+- First you have to start your mininet program
+    This automatically disables ipv4 forwarding
+    This should also automatically run ts1 ifconfig ts1-eth1 10.0.1.7
+- Then you refresh the RPI's ip route (del and add)
+    This might not be necessary since ipv4 forwarding was disabled earlier.
+
+
+# Overview:
+So what happens when rpi1 sends a packet?
+-Firstly, RPI1 has an ip routing rule that prevents it from sending directly to RPI2, it must go through the host machine.
+- The packet is received by a sniffer on the host machine, which also has IP forwarding disabled.  The packet is processed and converted into a mininet address at the translator.  THe translator also has routing rules which sends packets to RPI2vhost via RPI1vhost.  It is also creating a spoofed packet where
+the source and destination IPs are of the RPIvhosts.  
+- The RPIvhosts recieve the packet and forward it to either:
+  - the translator - this happens if the destination IP of the packet
+        matches the current vhost.
+  - otherwise, the packet is sent to the next RPIvhost (with some IP converting)
+- The translator node receives the finalized packet, which looks identical to the one that it had seen when it read in (IPs are all external again).
+- It then sends it to the appropriate RPI destination.
+
+
+
+# ERROR CHECKLIST
+Your iproute configuration on host machine should only have default for the WiFi
+Your iproute configuration on the RPIs should be default dev INTERFACE_NAME scope link src 10.0.0.X
+ # Notes to self
+ #  I added an ip route for default enp8s0
