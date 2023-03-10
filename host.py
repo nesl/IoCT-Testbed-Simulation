@@ -12,10 +12,12 @@ import json
 from scapy.all import *
 
 parser = argparse.ArgumentParser(description='Server')
+parser.add_argument('--ip', type=str, help='')
 parser.add_argument('--device_id', type=str, help='')
 args = parser.parse_args()
 
-LISTEN_SOCKET, SEND_SOCKET_INTERNAL, HOST_DATA = None, None, None
+LISTEN_SOCKET_SNIFFER, SEND_SOCKET_INTERNAL, HOST_DATA = None, None, None
+HOST_IP = args.ip
 HOSTNAME = args.device_id
 
 
@@ -54,7 +56,7 @@ def forward_packet(src_ip, config_data, data):
 
 
 # This parses the incoming ethernet frame
-def parse_ethernet_frame(data, config_data):
+def parse_ethernet_frame(data):
 
     results = {}
 
@@ -62,9 +64,11 @@ def parse_ethernet_frame(data, config_data):
     protocols = output[0]
 
     #  Only return results for forwarding if we want this packet.
+    # if protocols.haslayer(UDP) and protocols.haslayer(IP) and \
+    #     "10.0.0." in str(output[IP].dst) and \
+    #     str(output[IP].src) != config_data[HOSTNAME]["external_ip"]:
     if protocols.haslayer(UDP) and protocols.haslayer(IP) and \
-        "10.0.1." in str(output[IP].dst) and \
-        str(output[IP].src) != config_data[HOSTNAME]["external_ip"]:
+        "10.0.0." in str(output[IP].dst):
 
         results["src_ip"] = str(output[IP].src)
         results["dst_ip"] = str(output[IP].dst)
@@ -73,16 +77,16 @@ def parse_ethernet_frame(data, config_data):
     return results
 
 # Get the mapping to an internal mininet address or external address
-def get_translated_address(recv_ip, config_data):
+# def get_translated_address(recv_ip, config_data):
     
-    translated_address = ""
-    for node in config_data.keys():
-        if config_data[node]["external_ip"] == recv_ip:
-            translated_address = config_data[node]["internal_ip"]
-        elif config_data[node]["internal_ip"] == recv_ip:
-            translated_address = config_data[node]["external_ip"]
+#     translated_address = ""
+#     for node in config_data.keys():
+#         if config_data[node]["external_ip"] == recv_ip:
+#             translated_address = config_data[node]["internal_ip"]
+#         elif config_data[node]["internal_ip"] == recv_ip:
+#             translated_address = config_data[node]["external_ip"]
     
-    return translated_address
+#     return translated_address
 
 
 def listen_thread():
@@ -90,32 +94,32 @@ def listen_thread():
     print("Set up listener...")
 
     # First, read in our config file
-    f = open("config.json")
-    config_data = json.load(f)
-    f.close()
+    # f = open("config.json")
+    # config_data = json.load(f)
+    # f.close()
 
     while True:
-        data, src_address = LISTEN_SOCKET.recvfrom(512)
+        data, src_address = LISTEN_SOCKET_SNIFFER.recvfrom(512)
 
-        parsed_results = parse_ethernet_frame(data, config_data)
+        parsed_results = parse_ethernet_frame(data)
         if parsed_results:
             print(parsed_results)
 
             spoofed_packet = None
-            # Now we have to alter some behavior.  If the destination ip
-            #   matches the current device IP, we conver to global ips.
-            if parsed_results["dst_ip"] == config_data[HOSTNAME]["internal_ip"]:
-                external_dst_ip = get_translated_address(parsed_results["dst_ip"], config_data)
-                spoofed_packet = IP(src=parsed_results["src_ip"], \
-                dst=external_dst_ip) \
-                / UDP(sport=55000, dport=55000) / parsed_results["data"]
-            else:# Otherwise, we forward as normal, changing the src IP to external
-                external_src_ip = get_translated_address(parsed_results["src_ip"], config_data)
-                spoofed_packet = IP(src=external_src_ip, \
-                dst=parsed_results["dst_ip"]) \
-                / UDP(sport=55000, dport=55000) / parsed_results["data"]
+            # # Now we have to alter some behavior.  If the destination ip
+            # #   matches the current device IP, we conver to global ips.
+            # if parsed_results["dst_ip"] == config_data[HOSTNAME]["internal_ip"]:
+            #     external_dst_ip = get_translated_address(parsed_results["dst_ip"], config_data)
+            #     spoofed_packet = IP(src=parsed_results["src_ip"], \
+            #     dst=external_dst_ip) \
+            #     / UDP(sport=55000, dport=55000) / parsed_results["data"]
+            # else:# Otherwise, we forward as normal, changing the src IP to external
+            #     external_src_ip = get_translated_address(parsed_results["src_ip"], config_data)
+            #     spoofed_packet = IP(src=external_src_ip, \
+            #     dst=parsed_results["dst_ip"]) \
+            #     / UDP(sport=55000, dport=55000) / parsed_results["data"]
             
-            send(spoofed_packet)
+            # send(spoofed_packet)
 
         # print("Recieved addr: " + str(src_address))
         # #  Example address: ('10.0.0.2', 48619)
@@ -139,22 +143,23 @@ def listen_thread():
 if __name__ == "__main__":
 
     # Get the current device information
-    device_id = args.device_id
-    f = open("config.json")
-    config_data = json.load(f)
-    f.close()
-    HOST_DATA = config_data[device_id]
     
     # Set up the socket
     # LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # LISTEN_SOCKET.bind(('', HOST_DATA["external_port"]))
 
-    print("Listening on " + str(HOST_DATA["external_port"]))
-    print("on IP: " + HOST_DATA["internal_ip"])
+    print("Listening on " + str(55000))
+    print("on IP: " + HOST_IP)
+
+    # So, it must listen on two interfaces.  First is the physical interface
+    #  and second is the regular socket.
+
 
     ETH_P_ALL=3
-    LISTEN_SOCKET=socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
-    LISTEN_SOCKET.bind((args.device_id + "-eth0", 0))
+    LISTEN_SOCKET_SNIFFER=socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
+    LISTEN_SOCKET_SNIFFER.bind(("enp8s0", 0))
+
+
 
     # Set up the real node socket
     SEND_SOCKET_INTERNAL = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -165,5 +170,4 @@ if __name__ == "__main__":
 
 
     server_listen = threading.Thread(target=listen_thread)
-    # server_listen.daemon = True
     server_listen.start()

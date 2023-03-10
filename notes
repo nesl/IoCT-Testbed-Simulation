@@ -72,6 +72,10 @@ This is what allows internal mininet hosts to talk to the mininet switch
 
 If you lose WiFi on your host machine or other machines, you should double check your ip routes - it's possible that you messed up the default route and it routes through ethernet rather than WiFi for default.
 
+If you lose the interface (e.g. enp8s0) to an rpi, you can bring it back
+to the physical machine via "ip link set enp8s0 netns 1" which also removes it
+from rpi1.  It seems the network namespaces are mutually exclusive... 
+
 
 # Steps to enable the desired networking
 - Change the IP route of every RPI to route via the IP of the host machine
@@ -100,6 +104,16 @@ One of the issues of changing the IP route to be the loopback address is that
     This should also automatically run ts1 ifconfig ts1-eth1 10.0.1.7
 - Then you refresh the RPI's ip route (del and add)
     This might not be necessary since ipv4 forwarding was disabled earlier.
+- When you run mininet, make sure that the hosts are executing in the root network namespace (e.g. addhost(... inNamespace=False))
+
+# Notes on network setup
+sudo ip link add macvlan1 link enp8s0 type macvlan mode passthru
+sudo ip link set dev macvlan1 up
+
+- take it down
+ip link set enp8s0 nomaster
+ip link set macvlan1 down
+ip link delete macvlan1
 
 
 # Overview:
