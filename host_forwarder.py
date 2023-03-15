@@ -40,25 +40,33 @@ def forward(pkt):
 def print_pkt(pkt):
     print("OUT!")
     print(pkt.summary())
-    print(pkt.src)
+    # print(pkt.src)
     # flip the src and destination
 
-    print(pkt[IP])
+    # print(pkt[IP])
     src_ip = pkt[IP].src
     dst_ip = pkt[IP].dst
     src_mac = pkt.src
     dst_mac = pkt.dst
 
     print("Received")
-    print(dst_mac)
-    print(src_mac)
+    print(pkt.payload)
+    # print(src_mac)
 
     # Sending from source enp8s0 and dstination of the rpi
-    spoofed_packet = Ether(src="9c:5c:8e:d1:f0:93", dst="dc:a6:32:c1:f1:9f") / IP(src=dst_ip, \
-                dst=src_ip) \
-                / UDP(sport=55000, dport=55000) / "reply".encode()
-    sendp(spoofed_packet, iface="enp8s0")
-    print("Sending to " + src_ip)
+    # spoofed_packet = Ether(src="9c:5c:8e:d1:f0:93", dst="dc:a6:32:c1:f1:9f") / IP(src=dst_ip, \
+    #             dst=src_ip) \
+    #             / UDP(sport=55000, dport=55000) / "reply".encode()
+    # spoofed_packet = IP(src=src_ip, \
+    #             dst=dst_ip) \
+    #             / UDP(sport=55000, dport=55000) / pkt.payload
+    # sendp(spoofed_packet, iface="enp8s0")
+    send(pkt.payload)
+    # sendp(pkt, iface="enp8s0")
+    # SEND_SOCKET.send(bytes(spoofed_packet))
+    # SEND_SOCKET.sendto(bytes(pkt.payload), (str(dst_ip), 55000))
+
+    # print("Sending to " + src_ip)
 
 
 # Listens on enp8s0
@@ -68,7 +76,7 @@ def listen_thread1():
 
     # Create socket
 
-    print("Start listening...")
+    print("Start listening on " + str(args.src_ip))
     # Source IP should match this host
     filter='src host ' + args.src_ip + ' and dst port 55000 and not ether src host 9c:5c:8e:d1:f0:93'
     print("Hearing from source...")
@@ -105,6 +113,8 @@ if __name__ == "__main__":
     # SEND_SOCKET=socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
     # SEND_SOCKET.bind((INTF, 0))
 
+    SEND_SOCKET=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # SEND_SOCKET.bind((INTF, 0))
 
     server_listen = threading.Thread(target=listen_thread1)
     server_listen.start()

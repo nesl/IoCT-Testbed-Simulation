@@ -71,7 +71,7 @@ def emptyNet():
     rpi2 = net.addHost('rpi2', ip=rpi2_internal_address)
     
 
-    h1 = net.addHost( 'h1', ip="10.0.1.8" )
+    # h1 = net.addHost( 'h1', ip="10.0.1.8" )
 
     # ADD ETHERNET INTERFACE TO TS1
 
@@ -103,9 +103,9 @@ def emptyNet():
 
     # First, connect all of our tiers together
     net.addLink(translator_switch, device_tier_switch)
-    net.addLink(device_tier_switch, netedge_tier_switch, delay='20ms')
+    net.addLink(device_tier_switch, netedge_tier_switch, delay='0ms')
     # net.addLink(netedge_tier_switch, cloud_tier_switch, delay='100ms')
-    net.addLink(netedge_tier_switch, cloud_tier_switch, delay='500ms')
+    net.addLink(netedge_tier_switch, cloud_tier_switch, delay='0ms')
 
     # net.addLink(rpi1, rpi2, delay='100ms')
 
@@ -121,7 +121,7 @@ def emptyNet():
     #  100 + 20 + 100 + 20
     net.addLink(rpi1, device_tier_switch)
     net.addLink(rpi2, cloud_tier_switch)
-    net.addLink(h1, device_tier_switch)
+    # net.addLink(h1, device_tier_switch)
 
     # Setup2: device talks to cloud
     # An RTT should be:
