@@ -48,6 +48,7 @@ def print_pkt(pkt):
     # SEND_SOCKET.sendto("hi".encode(), (str(destination_ip), 55000))
     sendp(pkt, iface=args.mininet_intf)
 
+# This is called from the rpi-eth0 interface
 def send_to_host(pkt):
     sendp(pkt, iface=args.veth_intf)
 
@@ -70,6 +71,7 @@ def listen_thread2():
     # clientSocket.bind((INTF, 0))
     # clientSocket.bind(("macvlan1",0))
 
+    print("Listening for dst: %s" % (args.internal_ip))
     filter='dst host ' + args.internal_ip + ' and dst port 55000'
     sniff(iface=args.mininet_intf, filter=filter, prn=send_to_host)
 

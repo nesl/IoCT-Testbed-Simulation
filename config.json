@@ -1,20 +1,20 @@
 {
-    "rpi1":
-    {
-        "external_ip":"10.0.0.5",
-        "external_port": 55000,
-        "internal_ip":"10.0.0.5"
+    "hosts": {
+        "rpi1":
+        {
+            "ipaddr":"10.0.0.5",
+            "type": "physical",
+            "location": "onpremise"
+        },
+        "rpi2":
+        {
+            "ipaddr":"10.0.0.6",
+            "type": "physical",
+            "location": "cloud"
+        }
     },
-    "rpi2":
-    {
-        "external_ip":"10.0.0.6",
-        "external_port": 55000,
-        "internal_ip":"10.0.0.6"
-    },
-    "switch":
-    {
-        "internal_ip":"10.0.0.7",
-        "external_port":55000,
-        "external_ip":"10.0.0.7"
+    "switches": {
+        "premise-edge-delay": "20ms",
+        "edge-cloud-delay":"100ms"
     }
 }
