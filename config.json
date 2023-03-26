@@ -2,19 +2,21 @@
     "hosts": {
         "rpi1":
         {
-            "ipaddr":"10.0.0.5",
+            "mininetaddr":"10.0.0.5",
             "type": "physical",
+            "realaddr": "10.0.0.5",
             "location": "onpremise"
         },
         "rpi2":
         {
-            "ipaddr":"10.0.0.6",
+            "mininetaddr":"10.0.0.6",
             "type": "physical",
+            "realaddr": "10.0.0.6",
             "location": "cloud"
         }
     },
     "switches": {
-        "premise-edge-delay": "20ms",
-        "edge-cloud-delay":"100ms"
+        "premise-edge-delay": "100ms",
+        "edge-cloud-delay":"40ms"
     }
 }

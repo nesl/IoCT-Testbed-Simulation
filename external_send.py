@@ -5,13 +5,14 @@ import time
 
 #  This is the file that a real external client will use to send data
 
+# EXAMPLE CALL:
+#  python external_send.py --dst_ip 127.0.1.1 --dst_port 8085 --src_ip 127.0.0.1
 
 parser = argparse.ArgumentParser(description='Server')
 # parser.add_argument('--internal_address', type=str, help='Internal mininet address')
-parser.add_argument('--destination_address', type=str, help='')
-# parser.add_argument('--intermediate_port', type=int, help='')
-# parser.add_argument('--destination_id', type=str, help='')
-# parser.add_argument('--origin_id', type=str)
+parser.add_argument('--dst_ip', type=str, help='')
+parser.add_argument('--dst_port', type=int, help='')
+parser.add_argument('--src_ip', type=str, help='')
 parser.add_argument('--message', type=str, default="hello from rpi!")
 args = parser.parse_args()
 
@@ -46,23 +47,25 @@ if __name__ == '__main__':
 
     # Create socket
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # clientSocket.bind(('', 55001))
+    clientSocket.bind((args.src_ip, args.dst_port))
+    # clientSocket.setsockopt(socket.SOL_SOCKET, 25, ("vclient2-hveth").encode('utf-8'))
     message = custom_marshall(args.message)
     # message = "hello mario".encode()
 
     print("Message: " + message.decode())
     # If this is from a physical node, it can be something like
     clientSocket.sendto(message, \
-        (args.destination_address, 55000))
+        (args.dst_ip, args.dst_port))
 
     # Time of sending a message
     SEND_TIMESTAMP = time.time()
 
     print("Sent message...")
 
-    LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    LISTEN_SOCKET.bind(('', 55000))
-    LISTEN_SOCKET.settimeout(10)
+    # LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # LISTEN_SOCKET.bind((args.src_ip, args.dst_port))
+    clientSocket.settimeout(10)
+    LISTEN_SOCKET = clientSocket
 
     server_listen = threading.Thread(target=listen_thread)
     server_listen.start()

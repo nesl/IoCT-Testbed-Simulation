@@ -5,14 +5,12 @@ import threading
 
 #  This is the file that a real external client will use to send data
 
+# Example usage:
+#  python external_recv.py --src_ip 127.0.1.1 --src_port 8085
 
 parser = argparse.ArgumentParser(description='Server')
-# parser.add_argument('--internal_address', type=str, help='Internal mininet address')
-# parser.add_argument('--intermediate_address', type=str, help='')
-# parser.add_argument('--intermediate_port', type=int, help='')
-# parser.add_argument('--destination_address', type=str, help='')
-# parser.add_argument('--destination_port', type=int, help='')
-# parser.add_argument('--origin_id', type=str)
+parser.add_argument('--src_port', type=int, help='')
+parser.add_argument('--src_ip', type=str, help='')
 args = parser.parse_args()
 
 LISTEN_SOCKET = None
@@ -28,7 +26,7 @@ def listen_thread():
 
     print("Set up listener...")
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # clientSocket.bind(("enp8s0", 0))
+    # clientSocket.bind(("127.0.1.1", 0))
 
     while True:
         data, address = LISTEN_SOCKET.recvfrom(512)
@@ -40,8 +38,11 @@ def listen_thread():
             # Get the source of this packet
             message = custom_marshall("reply")
             src_address = address[0]
+            src_port = address[1]
+            print(message)
             print(src_address)
-            clientSocket.sendto(message, (src_address, 55000))
+            print(src_port)
+            LISTEN_SOCKET.sendto(message, (address[0], args.src_port))
             print("Sent reply!")
 
 
@@ -57,7 +58,8 @@ if __name__ == "__main__":
     # LISTEN_SOCKET.bind(("enp8s0", 0))
     # LISTEN_SOCKET.bind((0,-1))
     # LISTEN_SOCKET.setsockopt(socket.SOL_SOCKET, 25, ("enp8s0").encode('utf-8'))
-    LISTEN_SOCKET.bind(('', 55000))
+    LISTEN_SOCKET.bind((args.src_ip, args.src_port))
+    # LISTEN_SOCKET.setsockopt(socket.SOL_SOCKET, 25, ("vclient1-hveth").encode('utf-8'))
     LISTEN_SOCKET.settimeout(10)
 
     server_listen = threading.Thread(target=listen_thread)

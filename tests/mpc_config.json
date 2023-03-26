@@ -1,0 +1,24 @@
+{
+    "hosts": {
+        "vclient1":
+        {
+            "mininetaddr":"10.0.0.11",
+            "type": "virtual",
+            "realaddr": "10.0.0.11",
+            "serverport": 8085,
+            "location": "cloud"
+        },
+        "vclient2":
+        {
+            "mininetaddr":"10.0.0.10",
+            "type": "virtual",
+            "realaddr": "10.0.0.10",
+            "serverport": -1,
+            "location": "onpremise"
+        }
+    },
+    "switches": {
+        "premise-edge-delay": "0ms",
+        "edge-cloud-delay":"0ms"
+    }
+}

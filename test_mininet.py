@@ -27,7 +27,7 @@ class LinuxRouter( Node ):	# from the Mininet library
         self.cmd( 'sysctl net.ipv4.ip_forward=0' )
         super( LinuxRouter, self ).terminate()
 
-def emptyNet(host_intf):
+def emptyNet(external_intf, config_file):
 
     "Create an empty network and add nodes to it."
 
@@ -38,7 +38,7 @@ def emptyNet(host_intf):
     net.addController( 'c0' )
 
     # First, read in our config file, which tells us which hosts to add.
-    f = open("config.json")
+    f = open(config_file)
     config_data = json.load(f)
     config_data_hosts = config_data["hosts"]
     config_data_switches = config_data["switches"]
@@ -70,8 +70,9 @@ def emptyNet(host_intf):
     #   corresponding to its tier.
     mininet_hosts = []
     pids_to_kill = []  # This is for killing the extra terminals after the simulation is done.
+    added_netns = [] # This is a list of network namespaces we added
     for device in config_data_hosts:
-        device_address = config_data_hosts[device]["ipaddr"]
+        device_address = config_data_hosts[device]["mininetaddr"]
         # Add it as a mininet host
         current_host = net.addHost(device, ip=device_address)
         mininet_hosts.append((current_host, config_data_hosts[device]))
@@ -89,8 +90,24 @@ def emptyNet(host_intf):
         os.system("sudo ip link set " + host_veth + " up")
         os.system("sudo ip link set " + device_veth + " up")
         # In the case of a virtual address, add an IP address to a network interface
+        local_ip = device_address
+        local_port = -1
+        use_local = False
         if config_data_hosts[device]["type"] == "virtual":
             os.system("sudo ifconfig " + host_veth + " " + device_address)
+            local_ip = config_data_hosts[device]["realaddr"]
+            local_port = config_data_hosts[device]["serverport"]
+            use_local = True
+
+            # Also, we need to create a custom network namespace
+            #  We need to move our host veth there as well 
+            os.system("sudo ip netns add " + device)
+            os.system("sudo ip link set " + host_veth + " netns " + device)
+            os.system("sudo ip -n " + device + " link set " + host_veth + " up")
+            os.system("sudo ip -n " + device + " link set lo up")
+            os.system("sudo ip netns exec " + device + " ifconfig " + \
+                host_veth + " " + device_address)
+            added_netns.append(device)
 
         # Now move the device_veth interface into the network namespace of the mininet host
         Intf(device_veth, node=current_host)
@@ -102,14 +119,27 @@ def emptyNet(host_intf):
         current_host.cmd("ifconfig br0 up")
         current_host.cmd("ip link set " + mininet_veth + " master br0")
         current_host.cmd("ip link set " + device_veth + " master br0")
-        
 
+
+        # So importantly, we have to check the realaddr - if it uses a local intf
+        #  or a host veth or the external interface
+        listening_intf = external_intf
+        if local_ip == "127.0.0.1" or local_ip == "127.0.1.1":
+            listening_intf = "lo"
+        
         # Load up our host processes.
         #  These run outside Mininet and communicate directly with the RPIs, and forward data
         #   to the mininet hosts
-        host_pid = os.system("sudo xterm -hold -e 'sudo bash host.sh " + \
-            host_veth + " " + host_intf + " " + device_address + "' &")
-        pids_to_kill.append(host_pid)
+        #  These only run if we have external hosts.
+        if config_data_hosts[device]["type"] != "virtual":
+
+            command = "sudo xterm -hold -e 'sudo bash host.sh " + \
+                host_veth + " " + listening_intf + " " + device_address + " " +  \
+                local_ip + " " + str(local_port) + " " + str(use_local) + " " + \
+                config_file + "' & "
+            print(command)
+            host_pid = os.system(command)
+            pids_to_kill.append(host_pid)
 
     info( '*** Starting network\n')
 
@@ -119,7 +149,8 @@ def emptyNet(host_intf):
     os.system("sudo sysctl -w net.ipv4.ip_forward=0")
 
     info( '*** Running CLI\n** \n' )
-
+    print("\n\nWhen running commands for virtual hosts,"+\
+        " do not forget to begin them with 'sudo ip netns exec NS_NAME COMMAND'")
     # os.system("ifconfig ts1-eth1 " + switch_internal_address)
     
     CLI( net )
@@ -131,6 +162,10 @@ def emptyNet(host_intf):
     # Kill the PIDs
     for pid_x in pids_to_kill:
         os.kill(int(pid_x), signal.SIGKILL)
+
+    # Delete all the additional network namespaces
+    for netns in added_netns:
+        os.system("sudo ip netns delete " + netns)
     
     # Clear mininet
     os.system("mn -c")
@@ -140,7 +175,8 @@ if __name__ == '__main__':
     setLogLevel( 'info' )
 
     parser = argparse.ArgumentParser(description='Server')
-    parser.add_argument('--host_intf', type=str)
+    parser.add_argument('--external_intf', type=str)
+    parser.add_argument('--config_file', type=str)
     args = parser.parse_args()
 
-    emptyNet(args.host_intf)
+    emptyNet(args.external_intf, args.config_file)
