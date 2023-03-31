@@ -19,11 +19,17 @@ args = parser.parse_args()
 
 
 LISTEN_SOCKET = None
-SEND_TIMESTAMP = 0
+SEND_COUNTER = 0
+SEND_TIMES = {}
+SEND_LIMIT = 10
 
-def listen_thread():
+def listen_thread(cSock, message_str, dst_ip, dst_port):
 
     print("Set up listener...hi")
+    
+    
+    # Time that we wait between replies
+    time_diff_wait = 0.5
 
     while True:
         data, address = LISTEN_SOCKET.recvfrom(512)
@@ -33,14 +39,31 @@ def listen_thread():
             message = data.decode()
             print(message)
 
-            if "reply" in message:
-                print("Time difference: %f seconds" % ((time.time() - SEND_TIMESTAMP)/2))
-    
+            if "reply" in message and len(SEND_TIMES.keys()) < SEND_LIMIT:
+            
+            	# Get the message index
+               msg_index = int(message.split(":")[1])
+            
+		# Determine the time difference
+               current_time_diff = (time.time() - SEND_TIMES[msg_index])
+               current_time_diff = current_time_diff / 2 # Get one-way time
+               if current_time_diff > 0: # Just a temp hack
+                   print("Time difference: %f seconds" % (current_time_diff))
+               # last_reply_time = time.time()
+               # Once we get a reply, send another message back
+               send_message = custom_marshall(message_str)
+               clientSocket.sendto(send_message, (dst_ip, dst_port))
+               time.sleep(time_diff_wait) # Sleep for 0.5sec
 
 # Form the data to transmit
 def custom_marshall(message):
 
+    global SEND_COUNTER
+
     message_to_send = message #':'.join([destination_id, origin_id, message])
+    message_to_send += ":" + str(SEND_COUNTER)
+    SEND_TIMES[SEND_COUNTER] = time.time()
+    SEND_COUNTER += 1
     return message_to_send.encode()
 
 if __name__ == '__main__':
@@ -57,9 +80,6 @@ if __name__ == '__main__':
     clientSocket.sendto(message, \
         (args.dst_ip, args.dst_port))
 
-    # Time of sending a message
-    SEND_TIMESTAMP = time.time()
-
     print("Sent message...")
 
     # LISTEN_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -67,5 +87,6 @@ if __name__ == '__main__':
     clientSocket.settimeout(10)
     LISTEN_SOCKET = clientSocket
 
-    server_listen = threading.Thread(target=listen_thread)
+    server_listen = threading.Thread(target=listen_thread, \
+    	args=(clientSocket, args.message, args.dst_ip, args.dst_port))
     server_listen.start()

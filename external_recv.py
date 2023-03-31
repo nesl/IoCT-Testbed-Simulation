@@ -33,15 +33,15 @@ def listen_thread():
         #  Example address: ('10.0.0.2', 48619)
         # If we receive something
         if len(data):
-            # print(data)
+            print(data)
+            # Make sure you get the counter
+            msg_index = data.decode().split(":")[1]
 
             # Get the source of this packet
-            message = custom_marshall("reply")
+            message = custom_marshall("reply:"+msg_index)
             src_address = address[0]
             src_port = address[1]
             print(message)
-            print(src_address)
-            print(src_port)
             LISTEN_SOCKET.sendto(message, (address[0], args.src_port))
             print("Sent reply!")
 

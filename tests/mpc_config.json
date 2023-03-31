@@ -18,7 +18,7 @@
         }
     },
     "switches": {
-        "premise-edge-delay": "0ms",
-        "edge-cloud-delay":"0ms"
+        "premise-edge-delay": "20ms",
+        "edge-cloud-delay":"100ms"
     }
 }

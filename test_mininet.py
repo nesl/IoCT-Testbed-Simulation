@@ -1,8 +1,13 @@
-from mininet.net import Mininet
+# from mininet.net import Mininet
 from mininet.node import DefaultController, OVSKernelSwitch, Node, Switch
-from mininet.cli import CLI
+# from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink, OVSLink, Intf, TCULink
+
+# Try out mininet wifi
+from mn_wifi.cli import CLI
+from mn_wifi.net import Mininet_wifi
+
 import pdb
 import time
 
@@ -31,7 +36,7 @@ def emptyNet(external_intf, config_file):
 
     "Create an empty network and add nodes to it."
 
-    net = Mininet( controller=DefaultController, link=TCLink) #, switch=OVSKernelSwitch )
+    net = Mininet_wifi( controller=DefaultController, link=TCLink) #, switch=OVSKernelSwitch )
 
 
     info( '*** Adding controller\n' )
