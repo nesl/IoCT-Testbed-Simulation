@@ -44,9 +44,9 @@ name_of_device:     # This is just for naming our device
 ```
 sudo python test_mininet.py  --external_intf INTERFACE_NAME --config_file CONFIG_LOCATION
 ```
-The --external_intf argument is the physical network interface that you are using to connect to the other external devices.  The config file stores the settings for the experiment.  For example, if your physical interface is called "enp8s0" and your config file is at "tests/mpc_config.json", then this command would be:
+The --external_intf argument is the physical network interface that you are using to connect to the other external devices.  The config file stores the settings for the experiment.  For example, if your physical interface is called "enp8s0" and your config file is at "tests/mpc_test/mpc_config.json", then this command would be:
 ```
-sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_config.json
+sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_test/mpc_config.json
 ```
 
 ### IMPORTANT NOTE:
@@ -55,14 +55,14 @@ You should rerun this command anytime you make changes to the config file!
 
 ## Notes on virtual hosts
 
-When you have some processes that you wish to execute locally yet still make use of the simulated network of Mininet, you can achieve this by executing them in their corresponding network namespace.  The folder 'tests/mpc_config.json' gives an example configuration - it sets up two different virtual devices, vclient1 and vclient2.  The simulator also sets up two network namespaces for each virtual device (or more specifically, for every entry which has the "type"=="virtual"), and the names of each namespace is the same as the device name.  You can run python scripts in each namespace in the following way:
+When you have some processes that you wish to execute locally yet still make use of the simulated network of Mininet, you can achieve this by executing them in their corresponding network namespace.  The folder 'tests/mpc_test/mpc_config.json' gives an example configuration - it sets up two different virtual devices, vclient1 and vclient2.  The simulator also sets up two network namespaces for each virtual device (or more specifically, for every entry which has the "type"=="virtual"), and the names of each namespace is the same as the device name.  You can run python scripts in each namespace in the following way:
 
 ```
 sudo ip netns exec NS_NAME python PYTHON_SCRIPT
 ```
-where NS_NAME refers to a device name like 'vclient1' in the case of tests/mpc_config.json, and PYTHON_SCRIPT can be any python script that you want to use as a client/server.  For example:
+where NS_NAME refers to a device name like 'vclient1' in the case of tests/mpc_test/mpc_config.json, and PYTHON_SCRIPT can be any python script that you want to use as a client/server.  For example:
 ```
-sudo ip netns exec vclient1 python external_recv.py --src_ip 10.0.0.11 --src_port 8085
+sudo ip netns exec vclient1 python tests/simple_reply_test/external_recv.py --src_ip 10.0.0.11 --src_port 8085
 ```
 is an example usage of one of our test scripts.
 
@@ -76,13 +76,13 @@ Firstly, if you have two external devices which are connected via the mininet ho
 
 Once the simulation is up and running, you can quickly check communication between any two devices. First, run the following command on an external device that listens to messages (assuming you send the file there)
 ```
-python external_recv.py
+python tests/simple_reply_test/external_recv.py --src_ip IP_ADDR --src_port DESIRED_PORT
 ```
 and run the following command on another device that sends messages
 ```
-python external_send.py --destination_address IP_ADDR
+python tests/simple_reply_test/external_send.py --dst_ip DEST_IP_ADDR --dst_port DESIRED_PORT --src_ip IP_ADDR
 ```
-where IP_ADDR is the physical address of the listening device.  This should match the 'ipaddr' field in the config.json
+where IP_ADDR is the physical address of the current listening device.  This should match the 'ipaddr' field in the config.json.  DEST_IP_ADDR is the ip address of the other device using external_recv.  DESIRED_PORT in both external_recv.py and external_send.py should match.
 
 ### Simple HTTP access
 
@@ -100,21 +100,23 @@ You can also see if you can ssh from one external device into another via ssh, a
 
 You can try out some of the code for robotic control and the impact of latency on those scenarios.  To use the code, you will need to run a few commands.  First you will need to run the mininet simulation:
 ```
-sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_config.json
+sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_test/mpc_config.json
 ```
 Then you should run the 'server' code to begin waiting for input:
 ```
-sudo ip netns exec vclient1 python tests/mpc_socket_lc_cloud.py
+sudo ip netns exec vclient1 python tests/mpc_test/mpc_socket_lc_cloud.py
 ```
 
 Then you should run the 'client' code to send input and log results:
 ```
-sudo ip netns exec vclient2 python start_script_socket.py
+sudo ip netns exec vclient2 python tests/mpc_test/start_script_socket.py
 ```
 
 
-
-
+### Testing with simple mobility:
+```
+sudo ovs-vsctl add-port pts1 pts1-wlan1.sta1
+```
 
 
 # Quick Issues
