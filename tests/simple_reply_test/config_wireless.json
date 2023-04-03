@@ -5,19 +5,40 @@
             "mininetaddr":"10.0.0.5",
             "type": "physical",
             "realaddr": "10.0.0.5",
-            "location": "onpremise"
+            "connector_name": "pt1",
+            "connection_type": "wireless",
+            "mobility": {
+                "coordinates":["40.0,30.0,0.0", "15.0,15.0,0.0", "130.0,20.0,0.0", "40.0,30.0,0.0"],
+                "time_interval": [1, 50]
+            }
         },
         "rpi2":
         {
             "mininetaddr":"10.0.0.6",
             "type": "physical",
             "realaddr": "10.0.0.6",
-            "location": "cloud"
+            "connector_name": "ct1",
+            "connection_type": "wired"
         }
     },
-    "switches": {
-        "premise-type": "wireless",
-        "premise-edge-delay": "0ms",
-        "edge-cloud-delay":"0ms"
+    "connectors": {
+        "pt1":
+        {
+            "type": "AP",
+            "linked_connectors": ["et1"],
+            "link_types": ["wired"],
+            "link_latencies": ["10ms"]
+        },
+        "et1":
+        {
+            "type": "switch",
+            "linked_connectors": ["ct1"],
+            "link_types": ["wired"],
+            "link_latencies": ["10ms"]
+        },
+        "ct1":
+        {
+            "type": "switch"
+        }
     }
 }

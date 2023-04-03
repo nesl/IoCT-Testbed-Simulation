@@ -26,16 +26,45 @@ This should print 0 if it is turned off.
 
 When we say 'virtual devices', we really mean processes which are executed on the local machine, but appear to be an external device.  So for example, we want a python process to appear like it is in a different physical device than the current host.  This is accomplished by Linux network namespaces - basically, a virtual device is a separate network namespace, and in our case, can only interact with other devices via veth interfaces.  This allows us to avoid the issue of multiple local processes interacting directly rather than via Mininet, which is often the goal when attempting to simulate network latencies between different processes despite them residing on the same machine.
 
-## Manging the Configurations
+## Managing the Configurations
 
-So the primary way we set up our experiments is via the 'config.json' file.
-The general format of each entry is as follows:
+So the primary way we set up our experiments is via a JSON file.  You can look into the 'tests' folders to see how to set these up (e.g. tests/simple_reply_test/config_wired.json)
 
-name_of_device:     # This is just for naming our device
-    realaddr:         # This is the ip address of the process or physical device.  In the case of physical devices, it is coincidentally the same address we will use in Mininet.  However, it is also possible to have a different address here than the mininet address (e.g. you have a process running 127.0.0.1)
-    mininetaddr:   # This is the IP address used by Mininet
-    type:           # This is the type of device, either "physical" or "virtual".  Based on this entry, the system determines what interface it listens and transmits data on.
-    location:       # This entry determines the network behavior of messages sent across mininet, with options of 'onpremise', 'edge', or 'cloud'.  For example, communication between a device at 'onpremise' and a device at 'cloud' will incur a greater network latency than 'onpremise' and 'edge'.
+These JSON files allow you to dictate the behavior of the simulation without necessarily messing around with the code (e.g. you don't need to add network namespaces, set up veth devices, configure IPs).  But this requires a proper understanding of how these configurations are set up and used.
+
+
+### Configuration Schema
+
+Keywords are bolded, and descriptive information is italicized.
+
+The general format of the config.json is as follows:
+
+- **hosts**:
+    - HOST_DEVICE_NAME: string *This is just for naming our device - please see special considerations below for naming guidance*
+        - **realaddr**: string:IP_ADDRESS   *This is the ip address of the process or physical device.  In the case of physical devices, it is coincidentally the same address we will use in Mininet.  In the case of a local process (e.g. running on 127.0.0.1) you can still set this to something like 10.0.0.10 - this is because we create a separate network namespace for this process*
+        - **mininetaddr**: string:IP_ADDRESS   *This is the IP address used by Mininet - usually it  matches the realaddr.*
+        - **type**: string:("physical" || "virtual")          *This is the type of device, either "physical" or "virtual".  Based on this entry, the system determines what interface it listens and transmits data on.  In the case of virtual devices, we generate a separate network namespace.*
+        - **connector_name**: string:CONNECTOR_NAME      *This entry determines the network behavior of messages sent across mininet.  This is determined by your 'connectors', which are just switches or APs - basically it determines what switch or AP you are connecting to based on the name you enter here*
+        - **connection_type**: string:("wired" || "wireless")     *This determines how this host is connected to the AP or switch, whether it is "wired" or "wireless"*
+- **connectors**:
+    - CONNECTOR_NAME: string *This is just for naming our connector - same as before, please check the 'special considerations' section below.*
+        - **type**: string:("AP" || "switch") *This determines what type of network connector this device is - either an Access Point or a network switch.
+        - **linked_connectors**: list:\[string:CONNECTOR_NAME, ...\] *This lists out what other connectors this is connected to.  For example, you can have a switch connected to two other switches, whose names you would list in this field.
+        - **link_types**: list:\[string:("wired")\] *This determines how each connector is linked to this one.  For now, all connectors are wired together, rather than wireless communication, so this field is not yet used.*
+        - **link_latencies**: list:\[string:TIME\] *This determines the latency of transmitting data over each link.  TIME must be of the form 'XYZ UNIT'.  For example, "100ms".
+
+### Other notes on configuration:
+When it comes to the connectors, each link only needs to be mentioned once.  For example, if switch A is linked to switch B, we only need to describe this link in A's section (e.g. "linked_connectors":\["B"\]) without needing to repeat this in B's section.  If you repeat this, you will end up generating another link.
+
+
+### Special considerations
+
+Mininet has certain restrictions when you name your devices.  The main rules for naming your hosts and connectors are as follows:
+- A name is a string followed by an integer
+- Keep the name as short as you can (e.g. <5 characters total)
+
+Failing to follow these rules will result in errors.  In particular, the latter rule is quite pernicious - it does not explicitly generate errors but it will cause problems when you attempt to create an AP and have it associate with other hosts or stations.
+
 
 # Running the simulation
 
@@ -49,8 +78,15 @@ The --external_intf argument is the physical network interface that you are usin
 sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_test/mpc_config.json
 ```
 
-### IMPORTANT NOTE:
-You should rerun this command anytime you make changes to the config file!
+**IMPORTANT NOTE: You should rerun this test_mininet.py command anytime you make changes to the config file!**
+
+## Mobility representations
+
+This project heavily relies on both [Mininet](http://mininet.org/) and its wireless fork [Mininet-Wifi](https://mininet-wifi.github.io/).  These allow emulation of both wired and wireless networks.  In particular, it allows us to experiment with devices moving around in a space and associating with different APs.  When you run an experiment involving mobility (usually the '.json' configuration file will contain a 'mobility' field under one of the hosts - e.g. tests/simple_reply_test).
+
+![Mobility image](./docs/mobility.png)
+
+One of the nice features of Mininet-Wifi is that it graphs the mobility of a device over time, but also the range of its wireless signal.
 
 
 ## Notes on virtual hosts
@@ -84,6 +120,8 @@ python tests/simple_reply_test/external_send.py --dst_ip DEST_IP_ADDR --dst_port
 ```
 where IP_ADDR is the physical address of the current listening device.  This should match the 'ipaddr' field in the config.json.  DEST_IP_ADDR is the ip address of the other device using external_recv.  DESIRED_PORT in both external_recv.py and external_send.py should match.
 
+This particular example has both wired and wireless experiments, depending on the .json file you chose when running "test_mininet.py".  
+
 ### Simple HTTP access
 
 You can also see if you can access HTTP servers via this simulation.  Assuming the same setup (two external devices), have one act as an HTTP server and another as a client.  On the server, you should run:
@@ -98,25 +136,24 @@ You can also see if you can ssh from one external device into another via ssh, a
 
 ### Testing with some control scenarios:
 
+Note - the config file for this scenario assumes two virtual hosts, meaning that it runs entirely locally on your computer.
+
 You can try out some of the code for robotic control and the impact of latency on those scenarios.  To use the code, you will need to run a few commands.  First you will need to run the mininet simulation:
 ```
 sudo python test_mininet.py  --external_intf enp8s0 --config_file tests/mpc_test/mpc_config.json
 ```
 Then you should run the 'server' code to begin waiting for input:
 ```
-sudo ip netns exec vclient1 python tests/mpc_test/mpc_socket_lc_cloud.py
+cd tests/mpc_test
+sudo ip netns exec vclient1 python mpc_socket_lc_cloud.py
 ```
 
 Then you should run the 'client' code to send input and log results:
 ```
-sudo ip netns exec vclient2 python tests/mpc_test/start_script_socket.py
+cd tests/mpc_test
+sudo ip netns exec vclient2 python start_script_socket.py
 ```
 
-
-### Testing with simple mobility:
-```
-sudo ovs-vsctl add-port pts1 pts1-wlan1.sta1
-```
 
 
 # Quick Issues
@@ -131,3 +168,9 @@ This just means Mininet did not exit properly, so it needs to be cleaned up:
 ```
 sudo mn -c
 ```
+
+## For my mobility experiments, it doesn't look like any data is being sent through the network!
+
+This could involve several things - here, a sniffing tool like Wireshark helps tremendously.  When using mobility experiments, you should be checking the AP's wlan interface to see if it receiving data or if it is associating properly with your hosts/stations.  If it is, you should see an additional interface in your root network namespace (just run 'ifconfig') similar to the following name: 'ap1-wlan1.sta1'.  This is a special interface - the '.sta1' only gets added if the AP has successfully associated with the station.
+
+

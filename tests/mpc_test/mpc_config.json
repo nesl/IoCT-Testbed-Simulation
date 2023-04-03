@@ -5,20 +5,36 @@
             "mininetaddr":"10.0.0.11",
             "type": "virtual",
             "realaddr": "10.0.0.11",
-            "serverport": 8085,
-            "location": "cloud"
+            "connector_name": "ct1",
+            "connection_type": "wired"
         },
         "vclient2":
         {
             "mininetaddr":"10.0.0.10",
             "type": "virtual",
             "realaddr": "10.0.0.10",
-            "serverport": -1,
-            "location": "onpremise"
+            "connector_name": "pt1",
+            "connection_type": "wired"
         }
     },
-    "switches": {
-        "premise-edge-delay": "20ms",
-        "edge-cloud-delay":"100ms"
+    "connectors": {
+        "pt1":
+        {
+            "type": "AP",
+            "linked_connectors": ["et1"],
+            "link_types": ["wired"],
+            "link_latencies": ["20ms"]
+        },
+        "et1":
+        {
+            "type": "switch",
+            "linked_connectors": ["ct1"],
+            "link_types": ["wired"],
+            "link_latencies": ["100ms"]
+        },
+        "ct1":
+        {
+            "type": "switch"
+        }
     }
 }
