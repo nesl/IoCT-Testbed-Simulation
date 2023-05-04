@@ -9,11 +9,11 @@
 In order to make use of our Mininet simulation, physical devices which are external to the host running the simulation must route through the host.
 For example, a Raspberry Pi wanting to communicate with another Raspberry Pi via our simulation must route their traffic through our host.  This is relatively easy to do - just run the following command in each external device.
 ```
-ip route SUBNET via HOST_IP
+ip route add SUBNET via HOST_IP
 ```
 This is assuming your devices are all sitting on the same subnet.  If your subnet is 10.0.0.0/24 and your host running Mininet is on 10.0.0.7, then this command would be:
 ```
-ip route 10.0.0.0/24 via 10.0.0.7
+ip route add 10.0.0.0/24 via 10.0.0.7
 ```
 
 On your host machine, make sure your IP forwarding is turned OFF.
