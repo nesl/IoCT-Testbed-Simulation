@@ -1,8 +1,23 @@
 
 # Introduction
 
+Modern distributed applications may consist of services which are split across different network locations, ranging from cloud, edge, to the local area network.  Ensuring that applications run smoothly over a variety of service placement configurations remains challenging because it requires physically setting up and deploying devices at different network distances.  Our testbed aims to mitigate this challenge, by enabling network simulation of different link characteristics (e.g. latency, bandwidth, mobility) for a given deployment of devices.  
+
+## System Architecture
+
+![System figure](./docs/mininetfig.png)
+
+Let's consider an application made up of multiple services.  In our system, some hosts may be physical (meaning that these are independent physical devices providing a software service), while some may be virtual (mainly used for development when physically independent devices are not available).  **Physical hosts** communicate with other hosts via a **coordinator machine** running [Mininet](http://mininet.org/) (see setup for more information).  This intermediary coordinator allows us to alter network link characteristics in software.  
+
+Each physical host uses a **forwarder**, which is software for forwarding IP packets between Mininet and the physical hosts.  Under the hood, these involve setting up virtual ethernet interfaces between the forwarder and Mininet nodes, and forwarding data between a physical interface (i.e. a NIC) and the virtual ethernet interface.  
+
+Highlighted in yellow is the components which are modified by the **testbed configuration**, which are JSON files for setting up our testbed.  In addition to creating forwarders for every physical host, the testbed configuration also creates virtual hosts, as well as sets up all the necessary communication components between Mininet and virtual/physical hosts (such as virtual ethernet pairs, network namespaces for virtual hosts).  Lastly, the testbed configuration uses Mininet APIs to emulate different network topologies and link types.  
+
+**Topology configurations** involve building an emulated network topology consisting of routers, APs, hosts, links, and switches from our testbed configuration.  In addition, **link type configurations** may specify the latency and bandwidth of different links, in addition to emulating mobility behaviors (e.g. propagation model as a device moves farther from an AP).  
 
 # Setup
+
+If you have physical devices that you want to use as part of the testbed, see **setup of physical devices**.  Otherwise, if you want to test out simulations only on a single device (i.e. the coordinator machine), see **setup of virtual devices**.  Mixing and matching physical and virtual devices is also possible.
 
 ## Setup of physical devices
 
