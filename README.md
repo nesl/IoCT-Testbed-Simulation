@@ -17,6 +17,31 @@ Highlighted in yellow is the components which are modified by the **testbed conf
 
 # Setup
 
+## Software Installation
+
+Our program relies on [PcapPlusPlus](https://pcapplusplus.github.io/), and requires it to be installed.  On Linux machines, first install the [prerequisites](https://pcapplusplus.github.io/docs/install/linux):
+```
+sudo apt-get install libpcap-dev
+```
+Then, download the precompiled binaries from [here](https://github.com/seladb/PcapPlusPlus/releases/tag/v23.09), and move them into this github repo folder, such that the structure looks like this:
+```
+IoCT-Testbed-Simulation
+|  README.md
+|  ...
+|--pcapplusplus/
+    |--bin/
+    |--example-app
+```
+where pcapplusplus contains all the precompiled binaries.  In our github repo, there is also an "example-app" folder, containing a main.cpp and test.sh file.  Be sure to **alter the path for "PcapPlusPlus_ROOT"** based on where you moved the precompiled binary folder.
+
+Finally, merge the folders for example-app from this github repo and the example-app from the pcapplusplus folder.  Then, compile the example-app:
+```
+cd pcapplusplus/example-app
+bash test.sh
+```
+This should compile the binary for our testbed, building the forwarder component of our architecture.
+
+
 If you have physical devices that you want to use as part of the testbed, see **setup of physical devices**.  Otherwise, if you want to test out simulations only on a single device (i.e. the coordinator machine), see **setup of virtual devices**.  Mixing and matching physical and virtual devices is also possible.
 
 ## Setup of physical devices

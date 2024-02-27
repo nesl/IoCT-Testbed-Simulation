@@ -2,9 +2,9 @@
     "hosts": {
         "rpi1":
         {
-            "mininetaddr":"10.0.0.5",
+            "mininetaddr":"192.168.98.51",
             "type": "physical",
-            "realaddr": "10.0.0.5",
+            "realaddr": "192.168.98.51",
             "connector_name": "pt1",
             "connection_type": "wireless",
             "mobility": {
@@ -14,9 +14,9 @@
         },
         "rpi2":
         {
-            "mininetaddr":"10.0.0.6",
+            "mininetaddr":"192.168.98.115",
             "type": "physical",
-            "realaddr": "10.0.0.6",
+            "realaddr": "192.168.98.115",
             "connector_name": "ct1",
             "connection_type": "wired"
         }

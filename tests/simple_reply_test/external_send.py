@@ -52,6 +52,7 @@ def listen_thread(cSock, message_str, dst_ip, dst_port):
                # last_reply_time = time.time()
                # Once we get a reply, send another message back
                send_message = custom_marshall(message_str)
+               print("Sending another message.")
                clientSocket.sendto(send_message, (dst_ip, dst_port))
                time.sleep(time_diff_wait) # Sleep for 0.5sec
 

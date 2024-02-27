@@ -2,35 +2,35 @@
     "hosts": {
         "rpi1":
         {
-            "mininetaddr":"192.168.98.51",
+            "mininetaddr":"10.0.0.6",
             "type": "physical",
-            "realaddr": "192.168.98.51",
-            "connector_name": "pt1",
+            "realaddr": "10.0.0.6",
+            "connector_name": "ct1",
             "connection_type": "wired"
         },
-        "rpi2":
+        "cloud1":
         {
-            "mininetaddr":"192.168.98.115",
+            "mininetaddr":"10.0.0.11",
             "type": "physical",
-            "realaddr": "192.168.98.115",
+            "realaddr": "10.0.0.11",
             "connector_name": "ct1",
             "connection_type": "wired"
         }
     },
     "connectors": {
-        "pt1":
+    	"pt1":
         {
             "type": "AP",
             "linked_connectors": ["et1"],
             "link_types": ["wired"],
-            "link_latencies": ["10ms"]
+            "link_latencies": ["0ms"]
         },
         "et1":
         {
             "type": "switch",
             "linked_connectors": ["ct1"],
             "link_types": ["wired"],
-            "link_latencies": ["10ms"]
+            "link_latencies": ["0ms"]
         },
         "ct1":
         {

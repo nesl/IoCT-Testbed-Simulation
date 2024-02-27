@@ -1,3 +1,6 @@
+
+USING_WIFI = True
+
 # from mininet.net import Mininet
 from mininet.node import DefaultController, OVSKernelSwitch, Node, Switch
 # from mininet.cli import CLI
@@ -6,7 +9,9 @@ from mininet.link import TCLink, OVSLink, Intf, TCULink
 
 # Try out mininet wifi
 from mn_wifi.cli import CLI
-from mn_wifi.net import Mininet_wifi
+from mn_wifi.net import Mininet_wifi as Mininet
+# if not USING_WIFI:
+#     from mininet.net import Mininet
 # from mn_wifi.replaying import ReplayingMobility
 
 import pdb
@@ -19,6 +24,9 @@ import signal
 from signal import SIGKILL
 import subprocess
 import json
+
+
+
 
 class LinuxRouter( Node ):	# from the Mininet library
     "A Node with IP forwarding enabled."
@@ -172,11 +180,16 @@ def addAllHosts(net, hosts_config, external_intf, config_file, all_connectors):
         #  These only run if we have external hosts.
         if hosts_config[device]["type"] != "virtual":
 
+            print("Starting with host ", str(host_veth), " and device ", str(listening_intf))
+
+            # command = "sudo xterm -hold -e 'sudo bash host.sh " + \
+            #     host_veth + " " + listening_intf + " " + device_address + " " +  \
+            #     local_ip + " " + str(use_local) + " " + \
+            #     config_file + "' & "
             command = "sudo xterm -hold -e 'sudo bash host.sh " + \
                 host_veth + " " + listening_intf + " " + device_address + " " +  \
-                local_ip + " " + str(use_local) + " " + \
-                config_file + "' & "
-            # print(command)
+                local_ip + "' & "
+            print(command)
             host_pid = os.system(command)
             pids_to_kill.append(host_pid)
 
@@ -253,7 +266,7 @@ def InitializeNetwork(external_intf, config_file):
     WAIT_TIME = 2 # We have to wait for hosts to get set up before running certain commands
 
     "Create an empty network and add nodes to it."
-    net = Mininet_wifi( controller=DefaultController, link=TCLink) #, switch=OVSKernelSwitch )
+    net = Mininet( controller=DefaultController, link=TCLink) #, switch=OVSKernelSwitch )
 
 
     info( '*** Adding controller\n' )
@@ -291,7 +304,7 @@ def InitializeNetwork(external_intf, config_file):
     
     # Configure our nodes
     configureAllNodes(net, mininet_hosts)
-
+    
     # Now, set up our mobility
     configureMobility(net, mobility_hosts, WAIT_TIME)
 
