@@ -23,24 +23,24 @@ Our program relies on [PcapPlusPlus](https://pcapplusplus.github.io/), and requi
 ```
 sudo apt-get install libpcap-dev
 ```
-Then, download the precompiled binaries from [here](https://github.com/seladb/PcapPlusPlus/releases/tag/v23.09), and move them into this github repo folder, such that the structure looks like this:
+Then, follow the rest of the build instructions.  
+Importantly, be sure to configure it with immediate mode:
 ```
-IoCT-Testbed-Simulation
-|  README.md
-|  ...
-|--pcapplusplus/
-    |--bin/
-    |--example-app
+cmake -S . -B build -DPCAPPP_ENABLE_PCAP_IMMEDIATE_MODE=ON
 ```
-where pcapplusplus contains all the precompiled binaries.  In our github repo, there is also an "example-app" folder, containing a main.cpp and test.sh file.  Be sure to **alter the path for "PcapPlusPlus_ROOT"** based on where you moved the precompiled binary folder.
+Then continue with the build and install as usual:
+```
+cmake --build build
+cd build
+sudo cmake --install .
+```
 
-Finally, merge the folders for example-app from this github repo and the example-app from the pcapplusplus folder.  Then, compile the example-app:
+After install pcapplusplus, you can now compile the forwarder code.
 ```
-cd pcapplusplus/example-app
-bash test.sh
+cd forwarder
+bash compile.sh
 ```
-This should compile the binary for our testbed, building the forwarder component of our architecture.
-
+This should compile the binary for our testbed, building the forwarder component of our architecture.  You may now continue with the rest of the setup.
 
 If you have physical devices that you want to use as part of the testbed, see **setup of physical devices**.  Otherwise, if you want to test out simulations only on a single device (i.e. the coordinator machine), see **setup of virtual devices**.  Mixing and matching physical and virtual devices is also possible.
 
