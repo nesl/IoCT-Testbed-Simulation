@@ -5,32 +5,40 @@
             "mininetaddr":"10.0.0.6",
             "type": "physical",
             "realaddr": "10.0.0.6",
-            "connector_name": "et1",
+            "connector_name": "pt1",
             "connection_type": "wired"
         },
-        "cloud1":
+        "virt1":
+        {
+            "mininetaddr":"10.0.0.11",
+            "type": "virtual",
+            "realaddr": "10.0.0.11",
+            "connector_name": "ct1",
+            "connection_type": "wired"
+        },
+        "cloud":
         {
             "mininetaddr":"10.0.0.10",
             "type": "physical",
             "realaddr": "10.0.0.10",
-            "connector_name": "ct1",
+            "connector_name": "pt1",
             "connection_type": "wired"
         }
     },
     "connectors": {
-    	"pt1":
+        "pt1":
         {
             "type": "AP",
             "linked_connectors": ["et1"],
             "link_types": ["wired"],
-            "link_latencies": ["0ms"]
+            "link_latencies": ["10ms"]
         },
         "et1":
         {
             "type": "switch",
             "linked_connectors": ["ct1"],
             "link_types": ["wired"],
-            "link_latencies": ["0ms"]
+            "link_latencies": ["10ms"]
         },
         "ct1":
         {

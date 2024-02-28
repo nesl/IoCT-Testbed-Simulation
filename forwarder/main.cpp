@@ -23,7 +23,7 @@
 using namespace std;
 
 
-#define LATDEBUG 1
+#define LATDEBUG 0
 
 
 // // Shared memory abstraction for latencies
@@ -199,7 +199,7 @@ static void forward_to_mininet(pcpp::RawPacket* packet, \
 	// parsed the raw packet
     pcpp::Packet parsedPacket(packet);
 
-	cout << parsedPacket.toString();
+	// cout << parsedPacket.toString();
 
 	// Send on the mininet interface
 	if (!link_metadata->get_mininetdev()->sendPacket(*packet)) {
@@ -256,7 +256,7 @@ static void forward_to_external(pcpp::RawPacket* packet, \
 	// Only send the raw packet (payload), without ethernet frames
 	// parsedPacket.removeFirstLayer();
 
-	cout << parsedPacket.toString();
+	// cout << parsedPacket.toString();
 
 	// Send on the external interface
 	if (!link_metadata->get_hostdev()->sendPacket(&parsedPacket)) {
@@ -265,10 +265,6 @@ static void forward_to_external(pcpp::RawPacket* packet, \
 	}
 	else {
 		cout << "sent packet to external!" << endl;
-
-
-
-
 	}
 
 	
@@ -296,7 +292,9 @@ int main(int argc, char* argv[])
 	string real_addr(argv[4]);
 
 
-	
+	// Make sure we capture in non-promiscious mode
+	pcpp::PcapLiveDevice::DeviceConfiguration dconfig(pcpp::PcapLiveDevice::DeviceMode::Normal, 0,0);
+
 	// const vector<PcapLiveDevice *>& devices = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDevicesList();
 	// cout << pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDevicesList();
 
@@ -316,7 +314,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Open both the host and mininet dev
-	if (!(host_dev->open() && mininet_dev->open())) {
+	if (!(host_dev->open(dconfig) && mininet_dev->open(dconfig))) {
 		std::cerr << "Failed to open both interfaces..." << endl;
 		return 1;
 	}
@@ -343,14 +341,23 @@ int main(int argc, char* argv[])
 	host_dev->startCapture(forward_to_mininet, &link_metadata);
 	mininet_dev->startCapture(forward_to_external, &link_metadata);
 	// sleep for X seconds in main thread, in the meantime packets are captured in the async thread
-	pcpp::multiPlatformSleep(10);
+	while(true) {
+		// Just loop forever.
+
+		// Wait 10 seconds
+		pcpp::multiPlatformSleep(10);
+		// Display the latencies every 10 seconds
+		cout << "Displaying Latencies: " << endl;
+		// Now print out our link latencies
+		link_metadata.displayLatencies();
+	}
+	
+	
 	// stop capturing packets
 	host_dev->stopCapture();
 	mininet_dev->stopCapture();
 	
-	cout << "Displaying Latencies: " << endl;
-	// Now print out our link latencies
-	link_metadata.displayLatencies();
+	
 	// link_metadata.removeSharedMemory();
 	
 
